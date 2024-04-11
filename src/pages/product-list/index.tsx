@@ -1,5 +1,4 @@
-import { useEffect, useState } from 'react';
-import { Product } from '../../types/product.types';
+import { ChangeEvent, useEffect, useState } from 'react';
 import './index.css';
 import { useNavigate } from 'react-router-dom';
 import useListStore from '../../store/list-store';
@@ -37,23 +36,22 @@ export default function ProductListPage() {
 
   /**
    * 상품 목록 로드 및 "더보기" 로직
-   * @param skipReset Optional, skip 상태를 리셋시킬 지, 말 지의 param
+   * @param searchExe Optional, 검색 시 true로 할당해 skip 상태를 초기화함.
    */
-  const loadProducts = ({ skipReset = false }: { skipReset?: boolean }) => {
+  const loadProducts = ({ searchExe = false }: { searchExe?: boolean }) => {
     setLoading(true);
-    const query = searchTerm ? `search?q=${searchTerm}&` : '';
-    const url = `${
-      process.env.REACT_APP_API_URL
-    }/products?${query}limit=10&skip=${skipReset ? 0 : skip}`;
+    const url = searchTerm
+      ? `${process.env.REACT_APP_API_URL}/products/search?q=${searchTerm}&limit=10&skip=0`
+      : `${process.env.REACT_APP_API_URL}/products?limit=10&skip=${skip}`;
 
     fetch(url)
       .then((response) => response.json())
       .then((data) => {
         setTotalProducts(data.total);
         setProducts(
-          skipReset ? data.products : [...products, ...data.products],
+          searchExe ? data.products : [...products, ...data.products],
         );
-        setSkip(skipReset ? 10 : skip + 10);
+        setSkip(searchExe ? 0 : skip + 10);
         setLoading(false);
       })
       .catch((error) => {
@@ -71,10 +69,28 @@ export default function ProductListPage() {
   // "더보기" 버튼 클릭 핸들
   const handleLoadMore = () => loadProducts({});
 
+  const handleSearchInput = (e: ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+    if (e.target.value === '') {
+      // 초기화
+      fetch(`${process.env.REACT_APP_API_URL}/products?limit=10&skip=0`)
+        .then((response) => response.json())
+        .then((data) => {
+          setTotalProducts(data.total);
+          setProducts(data.products);
+          setSkip(0);
+        });
+    }
+  };
+
   // 검색 실행
   const handleSearch = () => {
+    if (searchTerm === '') {
+      alert('검색어를 입력해주세요.');
+      return;
+    }
     setSkip(0);
-    loadProducts({ skipReset: true });
+    loadProducts({ searchExe: true });
   };
 
   return (
@@ -83,7 +99,7 @@ export default function ProductListPage() {
       <input
         type='text'
         value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
+        onChange={handleSearchInput}
         onKeyDown={(e) => {
           if (e.key === 'Enter') {
             handleSearch();
