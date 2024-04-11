@@ -1,0 +1,49 @@
+.main-container {
+  text-align: center;
+  margin: auto;
+}
+
+button {
+  padding: 10px 20px;
+  margin: 20px 0;
+  border: none;
+  background-color: #007bff;
+  color: white;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #0056b3;
+}
+
+.main-container img.main {
+  width: 100%;
+  max-width: 400px;
+  height: auto;
+  margin-bottom: 20px;
+  border-radius: 3px;
+}
+
+.main-container h1,
+.main-container h2,
+.main-container p {
+  margin: 10px 0;
+}
+
+.main-container .extra-images img {
+  width: 100px;
+  height: 100px;
+  margin: 5px;
+  border-radius: 5px;
+}
+
+/* 로딩, 개수 등 결과값을 보여주는 CSS */
+.data-status {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100vw;
+  height: 80vh;
+  font-size: 2rem;
+}

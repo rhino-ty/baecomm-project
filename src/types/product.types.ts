@@ -5,3 +5,8 @@ export interface Product {
   price: number;
   brand: string;
 }
+
+export interface ProductDetail extends Product {
+  description: string;
+  images: string[];
+}
