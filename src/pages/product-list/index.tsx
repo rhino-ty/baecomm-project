@@ -1,75 +1,80 @@
 import { useEffect, useState } from 'react';
 import { Product } from '../../types/product.types';
 import './index.css';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import useListStore from '../../store/list-store';
 
 export default function ProductListPage() {
-  // Product 데이터, 더보기 및 검색 시 상태 갱신
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+  // 상품 데이터, 검색어, 스크롤, 더보기 전역상태, 뒤로가기 시 데이터를 유지하기 위해 전역 상태 사용
+  const {
+    products,
+    setProducts,
+    skip,
+    setSkip,
+    totalProducts,
+    setTotalProducts,
+    searchTerm,
+    setSearchTerm,
+    scrollPosition,
+    setScrollPosition,
+  } = useListStore();
 
-  // 검색어 string
-  const [searchQuery, setSearchQuery] = useState('');
-  // 더보기 클릭 관련 상태
-  const [skip, setSkip] = useState(0);
-  // 총 상품 개수 상태
-  const [totalProducts, setTotalProducts] = useState(0);
+  // 로딩 상태
+  const [loading, setLoading] = useState(false);
 
-  // 첫 렌더링 및 "더보기" 버튼을 위한 상품 로드 함수
-  const loadMoreProducts = () => {
-    // 로딩 상태를 true로 설정하여 데이터 로딩 중임을 표시
-    setLoading(true);
+  const navigate = useNavigate();
 
-    // 기본 상품 목록을 요청하고, skip에 따라 갱신됨
-    fetch(`${process.env.REACT_APP_API_URL}/products?limit=10&skip=${skip}`)
-      .then((response) => response.json())
-      .then((data) => {
-        // 응답으로 받은 총 상품 개수를 상태에 저장
-        setTotalProducts(data.total);
-        // 첫 페이지를 로드할 때는 상품 목록을 새 데이터로 갱신
-        if (skip === 0) {
-          setProducts(data.products);
-        } else {
-          // "더보기" 버튼 클릭 시 기존 상품 목록에 새로 로드한 상품을 추가
-          setProducts((prevProducts) => [...prevProducts, ...data.products]);
-        }
-        // 데이터 로드가 완료되면 로딩 상태를 false로 설정
-        setLoading(false);
-      })
-      .catch((error) => {
-        // 데이터 로드 중 오류가 발생하면 콘솔에 에러 메시지 출력
-        console.error('Error fetching data: ', error);
-        setLoading(false); // 오류 발생 시에도 로딩 상태를 false로 설정
-      });
-  };
-
-  // 첫 렌더링 시 기본 상품 목록 로드, 그 이후 skip이 변경됐을 때 실행하는 useEffect
+  // 스크롤 위치 복원
   useEffect(() => {
-    loadMoreProducts();
-  }, [skip]);
+    window.scrollTo(0, scrollPosition);
+  }, []);
 
-  // search 실행 함수
-  const handleSearch = () => {
-    setSkip(0); // 검색 시 skip을 0으로 재설정
-    fetchSearchResults(); // 검색어를 포함하여 상품 목록 갱신
+  // 디테일 페이지 이동 및 스크롤 저장 핸들러
+  const handleDetail = (productId: number) => {
+    setScrollPosition(window.scrollY);
+    navigate(`/product/${productId}`);
   };
 
-  // 검색 결과 로딩 함수
-  const fetchSearchResults = () => {
+  /**
+   * 상품 목록 로드 및 "더보기" 로직
+   * @param skipReset Optional, skip 상태를 리셋시킬 지, 말 지의 param
+   */
+  const loadProducts = ({ skipReset = false }: { skipReset?: boolean }) => {
     setLoading(true);
-    fetch(
-      `${process.env.REACT_APP_API_URL}/products/search?q=${searchQuery}&limit=10&skip=${skip}`,
-    )
+    const query = searchTerm ? `search?q=${searchTerm}&` : '';
+    const url = `${
+      process.env.REACT_APP_API_URL
+    }/products?${query}limit=10&skip=${skipReset ? 0 : skip}`;
+
+    fetch(url)
       .then((response) => response.json())
       .then((data) => {
-        setProducts(data.products);
         setTotalProducts(data.total);
+        setProducts(
+          skipReset ? data.products : [...products, ...data.products],
+        );
+        setSkip(skipReset ? 10 : skip + 10);
         setLoading(false);
       })
       .catch((error) => {
         console.error('Error fetching data: ', error);
         setLoading(false);
       });
+  };
+
+  useEffect(() => {
+    if (products.length === 0) {
+      loadProducts({});
+    }
+  }, []);
+
+  // "더보기" 버튼 클릭 핸들
+  const handleLoadMore = () => loadProducts({});
+
+  // 검색 실행
+  const handleSearch = () => {
+    setSkip(0);
+    loadProducts({ skipReset: true });
   };
 
   return (
@@ -77,8 +82,8 @@ export default function ProductListPage() {
       <h1>상품 리스트</h1>
       <input
         type='text'
-        value={searchQuery}
-        onChange={(e) => setSearchQuery(e.target.value)}
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
         onKeyDown={(e) => {
           if (e.key === 'Enter') {
             handleSearch();
@@ -87,16 +92,14 @@ export default function ProductListPage() {
         placeholder='상품 관련 정보를 입력해주세요.'
       />
       <button onClick={handleSearch}>검색</button>
-      {loading ? (
-        <div className='data-status'>Loading...</div>
-      ) : products?.length === 0 ? (
+      {products?.length === 0 ? (
         <div className='data-status'>해당하는 상품이 없습니다.</div>
       ) : (
         <div className='products'>
           {products?.map((product) => (
-            <Link
+            <div
               key={`${product?.title}-${product?.id}`}
-              to={`/product/${product?.id}`}
+              onClick={() => handleDetail(product?.id)}
               className='product'
             >
               <img src={product?.thumbnail} alt={product?.title} />
@@ -105,7 +108,7 @@ export default function ProductListPage() {
                 <div>{product?.title}</div>
               </div>
               <div className='price'>${product?.price}</div>
-            </Link>
+            </div>
           ))}
         </div>
       )}
@@ -113,10 +116,7 @@ export default function ProductListPage() {
       {/* products가 가진 데이터보다 total이 더 많을 때 더보기 버튼 생략 */}
       {products?.length < totalProducts && (
         // skip 상태를 변경시켜 fetch 실행
-        <button
-          className='skip'
-          onClick={() => setSkip((currentSkip) => currentSkip + 10)}
-        >
+        <button className='skip' onClick={handleLoadMore}>
           상품 더보기
         </button>
       )}
