@@ -1,3 +1,13 @@
+# 테스트 구동 화면
+공통: UI 및 라우터 구현
+
+1. 스크롤 유지
+![화면 기록 2024-04-11 19 08 16](https://github.com/rhino-ty/baecomm-project/assets/94962427/2bbe7ea4-bad8-4f2b-8995-cef20e4b16bd)
+2. 검색어 유지
+![화면 기록 2024-04-11 19 08 16 2](https://github.com/rhino-ty/baecomm-project/assets/94962427/24c9031d-0589-4bbb-8fa3-1be6136de0e3)
+
+
+
 # 배컴 과제
 
 ## 주의사항
