@@ -15,23 +15,19 @@ export default function ProductListPage() {
   // 총 상품 개수 상태
   const [totalProducts, setTotalProducts] = useState(0);
 
-  // 첫 렌더링 및 검색, "더보기" 버튼을 위한 상품 로드 함수
-  const fetchProducts = (search: string, newSkip: number) => {
+  // 첫 렌더링 및 "더보기" 버튼을 위한 상품 로드 함수
+  const loadMoreProducts = () => {
     // 로딩 상태를 true로 설정하여 데이터 로딩 중임을 표시
     setLoading(true);
 
-    // 검색어가 없는 경우 기본 상품 목록을 요청하고, 검색어가 있는 경우 검색 결과를 요청
-    fetch(
-      !search
-        ? `https://dummyjson.com/products?limit=10&skip=${newSkip}` // 검색어 없이 상품 목록 로드
-        : `https://dummyjson.com/products/search?q=${search}&limit=10&skip=${newSkip}`, // 검색어를 포함한 상품 목록 로드
-    )
+    // 기본 상품 목록을 요청하고, skip에 따라 갱신됨
+    fetch(`${process.env.REACT_APP_API_URL}/products?limit=10&skip=${skip}`)
       .then((response) => response.json())
       .then((data) => {
         // 응답으로 받은 총 상품 개수를 상태에 저장
         setTotalProducts(data.total);
-        // 새로운 검색이 시작되거나 첫 페이지를 로드할 때는 상품 목록을 새 데이터로 갱신
-        if (newSkip === 0) {
+        // 첫 페이지를 로드할 때는 상품 목록을 새 데이터로 갱신
+        if (skip === 0) {
           setProducts(data.products);
         } else {
           // "더보기" 버튼 클릭 시 기존 상품 목록에 새로 로드한 상품을 추가
@@ -47,19 +43,34 @@ export default function ProductListPage() {
       });
   };
 
-  // 첫 렌더링 시 기본 상품 목록 로드, 그 이후 search나 skip이 변경됐을 때 실행하는 useEffect
+  // 첫 렌더링 시 기본 상품 목록 로드, 그 이후 skip이 변경됐을 때 실행하는 useEffect
   useEffect(() => {
-    fetchProducts(searchQuery, skip);
-  }, [searchQuery, skip]);
+    loadMoreProducts();
+  }, [skip]);
 
-  // 검색 실행 함수
+  // search 실행 함수
   const handleSearch = () => {
     setSkip(0); // 검색 시 skip을 0으로 재설정
-    fetchProducts(searchQuery, 0); // 검색어를 포함하여 상품 목록 갱신
+    fetchSearchResults(); // 검색어를 포함하여 상품 목록 갱신
   };
 
-  // 로딩 시 나올 컴포넌트
-  if (loading) return <div className='loading'>Loading...</div>;
+  // 검색 결과 로딩 함수
+  const fetchSearchResults = () => {
+    setLoading(true);
+    fetch(
+      `${process.env.REACT_APP_API_URL}/products/search?q=${searchQuery}&limit=10&skip=${skip}`,
+    )
+      .then((response) => response.json())
+      .then((data) => {
+        setProducts(data.products);
+        setTotalProducts(data.total);
+        setLoading(false);
+      })
+      .catch((error) => {
+        console.error('Error fetching data: ', error);
+        setLoading(false);
+      });
+  };
 
   return (
     <main className='main-container'>
@@ -68,25 +79,35 @@ export default function ProductListPage() {
         type='text'
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            handleSearch();
+          }
+        }}
         placeholder='상품 관련 정보를 입력해주세요.'
       />
       <button onClick={handleSearch}>검색</button>
-      <div className='products'>
-        {products?.map((product) => (
-          <Link
-            key={`${product?.title}-${product?.id}`}
-            to={`/product/${product?.id}`}
-            className='product'
-          >
-            <img src={product?.thumbnail} alt={product?.title} />
-            <div>
-              <div>{product?.brand}</div>
-              <div>{product?.title}</div>
-            </div>
-            <div>${product?.price}</div>
-          </Link>
-        ))}
-      </div>
+      {loading ? (
+        <div className='loading'>Loading...</div>
+      ) : (
+        <div className='products'>
+          {products?.map((product) => (
+            <Link
+              key={`${product?.title}-${product?.id}`}
+              to={`/product/${product?.id}`}
+              className='product'
+            >
+              <img src={product?.thumbnail} alt={product?.title} />
+              <div>
+                <div>{product?.brand}</div>
+                <div>{product?.title}</div>
+              </div>
+              <div>${product?.price}</div>
+            </Link>
+          ))}
+        </div>
+      )}
+
       {/* products가 가진 데이터보다 total이 더 많을 때 더보기 버튼 생략 */}
       {products?.length < totalProducts && (
         // skip 상태를 변경시켜 fetch 실행
