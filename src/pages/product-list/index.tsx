@@ -98,11 +98,11 @@ export default function ProductListPage() {
               className='product'
             >
               <img src={product?.thumbnail} alt={product?.title} />
-              <div>
+              <div className='brand-title'>
                 <div>{product?.brand}</div>
                 <div>{product?.title}</div>
               </div>
-              <div>${product?.price}</div>
+              <div className='price'>${product?.price}</div>
             </Link>
           ))}
         </div>
@@ -111,7 +111,10 @@ export default function ProductListPage() {
       {/* products가 가진 데이터보다 total이 더 많을 때 더보기 버튼 생략 */}
       {products?.length < totalProducts && (
         // skip 상태를 변경시켜 fetch 실행
-        <button onClick={() => setSkip((currentSkip) => currentSkip + 10)}>
+        <button
+          className='skip'
+          onClick={() => setSkip((currentSkip) => currentSkip + 10)}
+        >
           상품 더보기
         </button>
       )}
