@@ -88,7 +88,9 @@ export default function ProductListPage() {
       />
       <button onClick={handleSearch}>검색</button>
       {loading ? (
-        <div className='loading'>Loading...</div>
+        <div className='data-status'>Loading...</div>
+      ) : products?.length === 0 ? (
+        <div className='data-status'>해당하는 상품이 없습니다.</div>
       ) : (
         <div className='products'>
           {products?.map((product) => (
